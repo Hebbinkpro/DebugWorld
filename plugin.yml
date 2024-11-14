@@ -1,7 +1,7 @@
 name: DebugWorld
 main: Hebbinkpro\DebugWorld\DebugWorld
 version: 1.0.0
-api: [ 5.21.0 ]
+api: 5.21.0
 load: STARTUP
 author: Hebbinkpro
 description: Add a debug world containing all block states to PocketMine-MP
