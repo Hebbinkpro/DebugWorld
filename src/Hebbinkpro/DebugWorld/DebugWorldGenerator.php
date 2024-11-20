@@ -20,6 +20,7 @@
 namespace Hebbinkpro\DebugWorld;
 
 use InvalidArgumentException;
+use pocketmine\block\Block;
 use pocketmine\block\RuntimeBlockStateRegistry;
 use pocketmine\block\VanillaBlocks;
 use pocketmine\world\ChunkManager;
@@ -31,6 +32,8 @@ class DebugWorldGenerator extends Generator
     public const BARRIER_FLOOR_HEIGHT = 60;
     public const GRID_HEIGHT = 70;
 
+    /** @var Block[] */
+    private array $blocks;
     private int $gridSize;
 
 
@@ -38,9 +41,11 @@ class DebugWorldGenerator extends Generator
     {
         parent::__construct($seed, $preset);
 
-        // get the number of registered block states
-        $states = sizeof(RuntimeBlockStateRegistry::getInstance()->getAllKnownStates());
+        // only get the indices to get integer keys from 0-n
+        $this->blocks = array_values(RuntimeBlockStateRegistry::getInstance()->getAllKnownStates());
 
+        // get the number of registered block states
+        $states = sizeof($this->blocks);
         // all blocks should fit in a size x size grid
         $this->gridSize = (int)ceil(sqrt($states));
     }
@@ -86,15 +91,14 @@ class DebugWorldGenerator extends Generator
         $gridX = (int)($x / 2);
         $gridZ = (int)($z / 2);
 
-        // position is outside the grid
-        if ($gridX > $this->gridSize || $gridZ > $this->gridSize) return $air;
+        // position is outside the grid (>= since 0 is also included in the grid)
+        if ($gridX >= $this->gridSize || $gridZ >= $this->gridSize) return $air;
 
         // get the block index
         $index = ($gridZ * $this->gridSize) + $gridX;
 
         // get the block by its index
-        $blocks = array_values(RuntimeBlockStateRegistry::getInstance()->getAllKnownStates());
-        $block = $blocks[$index] ?? null;
+        $block = $this->blocks[$index] ?? null;
         if ($block === null) return $air;
 
         // return the state id of the requested block
