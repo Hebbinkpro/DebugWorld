@@ -19,7 +19,12 @@
 
 namespace Hebbinkpro\DebugWorld;
 
+use pocketmine\block\Block;
 use pocketmine\block\RuntimeBlockStateRegistry;
+use pocketmine\block\UnknownBlock;
+use pocketmine\command\Command;
+use pocketmine\command\CommandSender;
+use pocketmine\item\StringToItemParser;
 use pocketmine\math\Vector3;
 use pocketmine\plugin\PluginBase;
 use pocketmine\world\generator\GeneratorManager;
@@ -92,5 +97,134 @@ class DebugWorld extends PluginBase
         $world->setSpawnLocation(new Vector3(0, DebugWorldGenerator::BARRIER_FLOOR_HEIGHT + 1, 0));
     }
 
+    public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool
+    {
+        switch ($command->getName()) {
+            case "debugworldlookup":
+            case "dwlookup":
+                if (sizeof($args) == 0) {
+                    $sender->sendMessage("§cUsage: " . $command->getUsage());
+                    return true;
+                }
 
+                // block_name|state_id
+                $blockId = $args[0];
+
+                $block = null;
+                $pos = null;
+
+                // try to parse the block from the block name
+                $item = StringToItemParser::getInstance()->parse($blockId);
+                if ($item !== null && ($block = $item->getBlock()) !== null) $pos = self::getBlockPosition($block);
+                else if (is_numeric($blockId)) {
+                    // state id
+                    $id = intval($blockId);
+                    if ($id > 0) {
+                        $block = RuntimeBlockStateRegistry::getInstance()->fromStateId($id);
+                        if ($block instanceof UnknownBlock) $block = null;
+                        else $pos = self::getBlockPosition($block);
+                    }
+                }
+
+                if ($block === null) {
+                    // invalid block
+                    $sender->sendMessage("§cThe block '$blockId' does not exist.");
+                } else if ($pos === null) {
+                    // invalid position
+                    $sender->sendMessage("§cThe block '{$block->getName()}' could not be found in the Debug World.");
+                } else {
+                    // found the block
+                    $sender->sendMessage("The block '{$block->getName()}' can be found at {$pos->getX()} {$pos->getY()} {$pos->getZ()}");
+                }
+
+
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the size of the debug world grid
+     * @return int
+     */
+    public static function getGridSize(): int
+    {
+        $states = sizeof(RuntimeBlockStateRegistry::getInstance()->getAllKnownStates());
+
+        // get the grid size
+        return (int)ceil(sqrt($states));
+    }
+
+    /**
+     * Get the position of the block inside a debug world grid
+     * @param Block $block
+     * @return Vector3|null the position or null when the block is not inside the grid
+     */
+    public static function getBlockPosition(Block $block): ?Vector3
+    {
+        $states = array_keys(RuntimeBlockStateRegistry::getInstance()->getAllKnownStates());
+        $index = array_search($block->getStateId(), $states);
+        if ($index === false) return null;
+
+        return self::getPositionByIndex($index);
+    }
+
+    /**
+     * Get the position in the debug world by the given block index
+     * @param int $index
+     * @return Vector3
+     */
+    public static function getPositionByIndex(int $index): Vector3
+    {
+        $size = self::getGridSize();
+
+        $x = ($index % $size) * 2;
+        $z = ((int)floor($index / $size)) * 2;
+
+        return new Vector3($x, DebugWorldGenerator::GRID_HEIGHT, $z);
+    }
+
+    /**
+     * Get the block index by the given x,z position
+     * @param Vector3 $pos
+     * @return int|null null if the given position is not inside the grid
+     */
+    public static function getIndexByPosition(Vector3 $pos): ?int
+    {
+        $size = self::getGridSize();
+        $maxPos = $size * 2;
+
+        // x and z position should be in the range [0,maxPos] and should be even
+        $x = $pos->getX();
+        if ($x < 0 || $x > $maxPos || $x % 2 == 1) return null;
+        $z = $pos->getZ();
+        if ($z < 0 || $z > $maxPos || $z % 2 == 1) return null;
+
+        // convert x and z to integer row and column
+        $row = (int)($x / 2);
+        $col = (int)($z / 2);
+
+        return $row * $size + $col;
+    }
+
+    /**
+     * Get a block by its x,z position in the debug grid
+     * @param Vector3 $pos
+     * @return Block|null
+     */
+    public static function getBlockByPosition(Vector3 $pos): ?Block
+    {
+        $index = self::getIndexByPosition($pos);
+        if ($index === null) return null;
+
+        // get all available states
+        $states = RuntimeBlockStateRegistry::getInstance()->getAllKnownStates();
+        // get the state from the block index
+        $state = array_keys($states)[$index] ?? null;
+        if ($state === null) return null;
+
+        // return the cloned block
+        return clone($states[$state] ?? null);
+    }
 }

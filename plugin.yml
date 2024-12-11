@@ -1,6 +1,17 @@
 name: DebugWorld
 main: Hebbinkpro\DebugWorld\DebugWorld
-version: 1.0.1
+version: 1.1.0
 api: 5.16.0
 author: Hebbinkpro
 description: Add a debug world containing all block states to PocketMine-MP
+commands:
+  debugworldlookup:
+    description: Debug World command to locate all blocks in the debug world
+    permission: debugworld.cmd.lookup
+    usage: /dwlookup <block_name|state_id>
+    aliases:
+      - dwlookup
+permissions:
+  debugworld.cmd.lookup:
+    description: Permission to execute the Debug World lookup command
+    default: op
