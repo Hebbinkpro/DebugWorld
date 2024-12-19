@@ -11,7 +11,17 @@ commands:
     usage: /dwlookup <block_name|state_id>
     aliases:
       - dwlookup
+
+  dwstateinfo:
+    description: Debug World command to see all info about the given block state
+    permission: debugworld.cmd.stateinfo
+    usage: /dwstateinfo <state_id>
+    aliases:
+      - dwstateinfo
 permissions:
   debugworld.cmd.lookup:
     description: Permission to execute the Debug World lookup command
+    default: op
+  debugworld.cmd.stateinfo:
+    description: Permission to execute the Debug World state info command
     default: op

@@ -27,8 +27,10 @@ use pocketmine\command\CommandSender;
 use pocketmine\item\StringToItemParser;
 use pocketmine\math\Vector3;
 use pocketmine\plugin\PluginBase;
+use pocketmine\world\format\io\GlobalBlockStateHandlers;
 use pocketmine\world\generator\GeneratorManager;
 use pocketmine\world\World;
+use TypeError;
 
 class DebugWorld extends PluginBase
 {
@@ -137,6 +139,36 @@ class DebugWorld extends PluginBase
                     $sender->sendMessage("The block '{$block->getName()}' can be found at {$pos->getX()} {$pos->getY()} {$pos->getZ()}");
                 }
 
+
+            return true;
+            case "debugworldstateinfo":
+            case "dwstateinfo":
+                if (sizeof($args) == 0) {
+                    $sender->sendMessage("§cUsage: " . $command->getUsage());
+                    return true;
+                }
+
+                if (!is_numeric($args[0])) {
+                    $sender->sendMessage("§cNo integer given");
+                    return true;
+                }
+
+                $state = intval($args[0]);
+                try {
+                    $data = GlobalBlockStateHandlers::getSerializer()->serialize($state);
+                } catch (TypeError) {
+                    $sender->sendMessage("§cInvalid state given");
+                    return true;
+                }
+                $states = $data->getStates();
+
+                $info = "";
+
+                foreach ($states as $key => $tag) {
+                    $info .= " - $key: {$tag->getValue()}\n";
+                }
+
+                $sender->sendMessage("§lBlock State Info: {$data->getName()}§r\n$info");
 
                 return true;
         }
